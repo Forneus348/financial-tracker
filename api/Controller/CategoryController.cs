@@ -18,21 +18,6 @@ public class CategoryController : ControllerBase
         _context = context;
     }
 
-    // POST: api/Category (Создание категории)
-    /* [HttpPost]
-    public async Task<ActionResult<Category>> CreateCategory(CategoryDto categoryDto)
-    {
-        var category = new Category
-        {
-            Name = categoryDto.Name,
-            Type = categoryDto.Type
-        };
-
-        _context.Categories.Add(category);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetCategory), new { id = category.ID }, category);
-    } */
     [HttpPost]
     public async Task<ActionResult<Category>> CreateCategory(CategoryDto categoryDto)
     {
