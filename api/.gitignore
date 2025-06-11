@@ -5,6 +5,7 @@
 
 appsettings.Development.json
 appsettings.json
+Migrations
 
 # dotenv files
 .env
