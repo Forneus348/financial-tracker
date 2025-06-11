@@ -28,6 +28,14 @@ function initApp() {
 
     // Установка текущей даты по умолчанию
     setDefaultDateTime();
+
+    // Обновляем список категорий при открытии модального окна транзакции
+    const transactionModal = document.getElementById('addTransactionModal');
+    if (transactionModal) {
+        transactionModal.addEventListener('show.bs.modal', function () {
+            refreshCategoryDropdown();
+        });
+    }
 }
 
 function setDefaultDateTime() {
@@ -269,6 +277,8 @@ function resetTransactionForm() {
 
 // ========== Категории ==========
 
+let categoriesCache = []; // Кэш для хранения категорий
+
 async function loadCategories() {
     try {
         const tableBody = document.getElementById('categories-table');
@@ -289,12 +299,17 @@ async function loadCategories() {
             throw new Error(await getErrorMessage(response));
         }
 
-        const categories = await response.json();
-        displayCategories(categories);
-        populateCategoryDropdown(categories);
+        categoriesCache = await response.json(); // Сохраняем в кэш
+        displayCategories(categoriesCache);
+        populateCategoryDropdown(categoriesCache);
     } catch (error) {
         showError('Не удалось загрузить категории', error);
     }
+}
+
+// Новая функция для обновления выпадающего списка
+function refreshCategoryDropdown() {
+    populateCategoryDropdown(categoriesCache);
 }
 
 function displayCategories(categories) {
@@ -351,6 +366,14 @@ function populateCategoryDropdown(categories) {
     const expenseCategories = categories.filter(c => c.type === 'Расход');
 
     dropdown.innerHTML = '';
+
+    // Добавляем пустую опцию по умолчанию
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Выберите категорию';
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    dropdown.appendChild(defaultOption);
 
     if (incomeCategories.length > 0) {
         const optgroupIncome = document.createElement('optgroup');
@@ -420,7 +443,10 @@ async function handleSaveCategory() {
         const modal = bootstrap.Modal.getInstance(document.getElementById('addCategoryModal'));
         if (modal) modal.hide();
 
+        // Обновляем кэш и отображение
         await loadCategories();
+        await loadTransactions(); // Обновляем транзакции, так как категории могли измениться
+
         resetCategoryForm();
 
         showToast(isEdit ? 'Категория обновлена' : 'Категория создана', 'success');
