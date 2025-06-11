@@ -4,60 +4,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Tracker</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <title>Учет транзакций</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
-        body {
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
-
-        .card {
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .table-container {
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        .positive {
+        .income {
             color: green;
         }
 
-        .negative {
+        .expense {
             color: red;
         }
 
-        .action-buttons {
-            white-space: nowrap;
+        .transaction-card {
+            transition: all 0.3s;
+        }
+
+        .transaction-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary-card {
+            border-left: 5px solid;
+        }
+
+        .summary-income {
+            border-left-color: green;
+        }
+
+        .summary-expense {
+            border-left-color: red;
+        }
+
+        /* Loader styles */
+        .loader-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        /* Toast styles */
+        .toast-container {
+            z-index: 1100;
+        }
+
+        .toast {
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1 class="mb-4 text-center">Financial Tracker</h1>
+    <div class="container py-4">
+        <h1 class="text-center mb-4">Учет транзакций</h1>
 
-        <!-- Категории -->
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h2 class="card-title">
-                    <i class="bi bi-tags"></i> Управление категориями
-                </h2>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
-                        <i class="bi bi-plus-circle"></i> Добавить категорию
-                    </button>
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="transactions-tab" data-bs-toggle="tab"
+                    data-bs-target="#transactions" type="button" role="tab">Транзакции</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories"
+                    type="button" role="tab">Категории</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <!-- Transactions Tab -->
+            <div class="tab-pane fade show active" id="transactions" role="tabpanel">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card summary-card summary-income mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Доходы</h5>
+                                <p class="card-text fs-4 income" id="total-income">0 ₽</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card summary-card summary-expense mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Расходы</h5>
+                                <p class="card-text fs-4 expense" id="total-expense">0 ₽</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Баланс</h5>
+                                <p class="card-text fs-4" id="total-balance">0 ₽</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="table-container">
+                <div class="d-flex justify-content-between mb-3">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+                        <i class="bi bi-plus-circle"></i> Добавить транзакцию
+                    </button>
+                    <div>
+                        <select class="form-select d-inline-block w-auto" id="filter-type">
+                            <option value="all">Все</option>
+                            <option value="Доход">Доходы</option>
+                            <option value="Расход">Расходы</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row" id="transactions-container">
+                    <div class="col-12 text-center py-4 text-muted">
+                        <i class="bi bi-hourglass-split"></i> Загрузка транзакций...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories Tab -->
+            <div class="tab-pane fade" id="categories" role="tabpanel">
+                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                    <i class="bi bi-plus-circle"></i> Добавить категорию
+                </button>
+
+                <div class="table-responsive">
                     <table class="table table-striped table-hover">
                         <thead>
                             <tr>
@@ -67,42 +147,12 @@
                                 <th>Действия</th>
                             </tr>
                         </thead>
-                        <tbody id="categoriesTableBody">
-                            <!-- Данные будут загружены через JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Транзакции -->
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h2 class="card-title">
-                    <i class="bi bi-cash-coin"></i> Управление транзакциями
-                </h2>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
-                        <i class="bi bi-plus-circle"></i> Добавить транзакцию
-                    </button>
-                </div>
-
-                <div class="table-container">
-                    <table class="table table-striped table-hover">
-                        <thead>
+                        <tbody id="categories-table">
                             <tr>
-                                <th>ID</th>
-                                <th>Сумма</th>
-                                <th>Дата</th>
-                                <th>Категория</th>
-                                <th>Описание</th>
-                                <th>Действия</th>
+                                <td colspan="4" class="text-center py-3 text-muted">
+                                    <i class="bi bi-hourglass-split"></i> Загрузка категорий...
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody id="transactionsTableBody">
-                            <!-- Данные будут загружены через JS -->
                         </tbody>
                     </table>
                 </div>
@@ -110,457 +160,90 @@
         </div>
     </div>
 
-    <!-- Модальные окна -->
-    <!-- Добавление категории -->
-    <div class="modal fade" id="addCategoryModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Добавить категорию</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addCategoryForm">
-                        <div class="mb-3">
-                            <label class="form-label">Название</label>
-                            <input type="text" class="form-control" id="categoryName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Тип</label>
-                            <select class="form-select" id="categoryType" required>
-                                <option value="">Выберите тип</option>
-                                <option value="Доход">Доход</option>
-                                <option value="Расход">Расход</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" onclick="addCategory()">Сохранить</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Редактирование категории -->
-    <div class="modal fade" id="editCategoryModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Редактировать категорию</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editCategoryForm">
-                        <input type="hidden" id="editCategoryId">
-                        <div class="mb-3">
-                            <label class="form-label">Название</label>
-                            <input type="text" class="form-control" id="editCategoryName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Тип</label>
-                            <select class="form-select" id="editCategoryType" required>
-                                <option value="Доход">Доход</option>
-                                <option value="Расход">Расход</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" onclick="updateCategory()">Обновить</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Добавление транзакции -->
-    <div class="modal fade" id="addTransactionModal" tabindex="-1">
+    <!-- Add Transaction Modal -->
+    <div class="modal fade" id="addTransactionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Добавить транзакцию</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addTransactionForm">
+                    <form id="transaction-form">
                         <div class="mb-3">
-                            <label class="form-label">Сумма</label>
-                            <input type="number" step="0.01" class="form-control" id="transactionAmount" required>
+                            <label for="transaction-amount" class="form-label">Сумма</label>
+                            <input type="number" step="0.01" class="form-control" id="transaction-amount" required>
+                            <div class="invalid-feedback">Пожалуйста, введите сумму</div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Дата</label>
-                            <input type="datetime-local" class="form-control" id="transactionDate" required>
+                            <label for="transaction-date" class="form-label">Дата</label>
+                            <input type="datetime-local" class="form-control" id="transaction-date" required>
+                            <div class="invalid-feedback">Пожалуйста, введите дату</div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Категория</label>
-                            <select class="form-select" id="transactionCategory" required>
-                                <option value="">Загрузка категорий...</option>
+                            <label for="transaction-category" class="form-label">Категория</label>
+                            <select class="form-select" id="transaction-category" required>
+                                <option value="" disabled selected>Загрузка категорий...</option>
                             </select>
+                            <div class="invalid-feedback">Пожалуйста, выберите категорию</div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Описание</label>
-                            <textarea class="form-control" id="transactionDescription"></textarea>
+                            <label for="transaction-description" class="form-label">Описание</label>
+                            <textarea class="form-control" id="transaction-description" rows="2"></textarea>
                         </div>
+                        <input type="hidden" id="transaction-id">
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" onclick="addTransaction()">Сохранить</button>
+                    <button type="button" class="btn btn-primary" id="save-transaction">
+                        <span class="save-text">Сохранить</span>
+                        <span class="spinner-border spinner-border-sm hidden" role="status" aria-hidden="true"></span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Редактирование транзакции -->
-    <div class="modal fade" id="editTransactionModal" tabindex="-1">
+    <!-- Add Category Modal -->
+    <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Редактировать транзакцию</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title">Добавить категорию</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="editTransactionForm">
-                        <input type="hidden" id="editTransactionId">
+                    <form id="category-form">
                         <div class="mb-3">
-                            <label class="form-label">Сумма</label>
-                            <input type="number" step="0.01" class="form-control" id="editTransactionAmount" required>
+                            <label for="category-name" class="form-label">Название</label>
+                            <input type="text" class="form-control" id="category-name" required>
+                            <div class="invalid-feedback">Пожалуйста, введите название</div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Дата</label>
-                            <input type="datetime-local" class="form-control" id="editTransactionDate" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Категория</label>
-                            <select class="form-select" id="editTransactionCategory" required>
-                                <option value="">Загрузка категорий...</option>
+                            <label for="category-type" class="form-label">Тип</label>
+                            <select class="form-select" id="category-type" required>
+                                <option value="Доход">Доход</option>
+                                <option value="Расход">Расход</option>
                             </select>
+                            <div class="invalid-feedback">Пожалуйста, выберите тип</div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Описание</label>
-                            <textarea class="form-control" id="editTransactionDescription"></textarea>
-                        </div>
+                        <input type="hidden" id="category-id">
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" onclick="updateTransaction()">Обновить</button>
+                    <button type="button" class="btn btn-primary" id="save-category">
+                        <span class="save-text">Сохранить</span>
+                        <span class="spinner-border spinner-border-sm hidden" role="status" aria-hidden="true"></span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap & jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-        const API_BASE_URL = 'http://localhost:5000/api';
-
-        // Загрузка данных при старте
-        $(document).ready(function () {
-            loadCategories();
-            loadTransactions();
-            loadCategoriesForDropdown();
-        });
-
-        // ================== Категории ==================
-        // Загрузка категорий
-        async function loadCategories() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/Category`);
-                if (!response.ok) throw new Error('Ошибка загрузки категорий');
-
-                const categories = await response.json();
-                renderCategories(categories);
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(error.message);
-            }
-        }
-
-        // Отображение категорий в таблице
-        function renderCategories(categories) {
-            const tbody = $('#categoriesTableBody');
-            tbody.empty();
-
-            categories.forEach(category => {
-                const row = `
-                    <tr>
-                        <td>${category.id}</td>
-                        <td>${category.name}</td>
-                        <td>${category.type}</td>
-                        <td class="action-buttons">
-                            <button class="btn btn-sm btn-warning me-1" 
-                                onclick="openEditCategoryModal(${category.id}, '${category.name}', '${category.type}')">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" 
-                                onclick="deleteCategory(${category.id})">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-                tbody.append(row);
-            });
-        }
-
-        // Добавление категории
-        async function addCategory() {
-            const name = $('#categoryName').val();
-            const type = $('#categoryType').val();
-
-            if (!name || !type) {
-                alert('Заполните все поля');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/Category`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, type })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Ошибка добавления категории');
-                }
-
-                $('#addCategoryModal').modal('hide');
-                $('#addCategoryForm')[0].reset();
-                loadCategories();
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(error.message);
-            }
-        }
-
-        // Открытие модального окна для редактирования категории
-        function openEditCategoryModal(id, name, type) {
-            $('#editCategoryId').val(id);
-            $('#editCategoryName').val(name);
-            $('#editCategoryType').val(type);
-            $('#editCategoryModal').modal('show');
-        }
-
-        // Обновление категории
-        async function updateCategory() {
-            const id = $('#editCategoryId').val();
-            const name = $('#editCategoryName').val();
-            const type = $('#editCategoryType').val();
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/Category/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, type })
-                });
-
-                if (!response.ok) throw new Error('Ошибка обновления категории');
-
-                $('#editCategoryModal').modal('hide');
-                loadCategories();
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(error.message);
-            }
-        }
-
-        // Удаление категории
-        async function deleteCategory(id) {
-            if (!confirm('Вы уверены, что хотите удалить эту категорию?')) return;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/Category/${id}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) throw new Error('Ошибка удаления категории');
-
-                loadCategories();
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(error.message);
-            }
-        }
-
-        // ================== Транзакции ==================
-        // Загрузка транзакций
-        async function loadTransactions() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/Transaction`);
-                if (!response.ok) throw new Error('Ошибка загрузки транзакций');
-
-                const transactions = await response.json();
-                renderTransactions(transactions);
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(error.message);
-            }
-        }
-
-        // Отображение транзакций в таблице
-        function renderTransactions(transactions) {
-            const tbody = $('#transactionsTableBody');
-            tbody.empty();
-
-            transactions.forEach(transaction => {
-                const date = new Date(transaction.date).toLocaleString();
-                const amountClass = transaction.amount >= 0 ? 'positive' : 'negative';
-
-                const row = `
-                    <tr>
-                        <td>${transaction.id}</td>
-                        <td class="${amountClass}">${transaction.amount.toFixed(2)}</td>
-                        <td>${date}</td>
-                        <td>${transaction.category ? transaction.category.name : 'N/A'}</td>
-                        <td>${transaction.description || ''}</td>
-                        <td class="action-buttons">
-                            <button class="btn btn-sm btn-warning me-1" 
-                                onclick="openEditTransactionModal(${transaction.id}, ${transaction.amount}, '${transaction.date}', ${transaction.categoryID}, '${transaction.description || ''}')">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" 
-                                onclick="deleteTransaction(${transaction.id})">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-                tbody.append(row);
-            });
-        }
-
-        // Загрузка категорий для выпадающих списков
-        async function loadCategoriesForDropdown() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/Category`);
-                if (!response.ok) throw new Error('Ошибка загрузки категорий');
-
-                const categories = await response.json();
-                populateCategoryDropdowns(categories);
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(error.message);
-            }
-        }
-
-        // Заполнение выпадающих списков категориями
-        function populateCategoryDropdowns(categories) {
-            const dropdowns = [
-                '#transactionCategory',
-                '#editTransactionCategory'
-            ];
-
-            dropdowns.forEach(selector => {
-                const dropdown = $(selector);
-                dropdown.empty();
-                dropdown.append('<option value="">Выберите категорию</option>');
-
-                categories.forEach(category => {
-                    dropdown.append(`<option value="${category.id}">${category.name} (${category.type})</option>`);
-                });
-            });
-        }
-
-        // Добавление транзакции
-        async function addTransaction() {
-            const amount = parseFloat($('#transactionAmount').val());
-            const date = $('#transactionDate').val();
-            const categoryID = parseInt($('#transactionCategory').val());
-            const description = $('#transactionDescription').val();
-
-            if (isNaN(amount)) {
-                alert('Введите корректную сумму');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/Transaction`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, date, categoryID, description })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Ошибка добавления транзакции');
-                }
-
-                $('#addTransactionModal').modal('hide');
-                $('#addTransactionForm')[0].reset();
-                loadTransactions();
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(error.message);
-            }
-        }
-
-        // Открытие модального окна для редактирования транзакции
-        function openEditTransactionModal(id, amount, date, categoryId, description) {
-            $('#editTransactionId').val(id);
-            $('#editTransactionAmount').val(amount);
-
-            // Форматирование даты для input[type=datetime-local]
-            const dateObj = new Date(date);
-            const formattedDate = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000)
-                .toISOString()
-                .slice(0, 16);
-
-            $('#editTransactionDate').val(formattedDate);
-            $('#editTransactionCategory').val(categoryId);
-            $('#editTransactionDescription').val(description);
-
-            $('#editTransactionModal').modal('show');
-        }
-
-        // Обновление транзакции
-        async function updateTransaction() {
-            const id = $('#editTransactionId').val();
-            const amount = parseFloat($('#editTransactionAmount').val());
-            const date = $('#editTransactionDate').val();
-            const categoryID = parseInt($('#editTransactionCategory').val());
-            const description = $('#editTransactionDescription').val();
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/Transaction/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, date, categoryID, description })
-                });
-
-                if (!response.ok) throw new Error('Ошибка обновления транзакции');
-
-                $('#editTransactionModal').modal('hide');
-                loadTransactions();
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(error.message);
-            }
-        }
-
-        // Удаление транзакции
-        async function deleteTransaction(id) {
-            if (!confirm('Вы уверены, что хотите удалить эту транзакцию?')) return;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/Transaction/${id}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) throw new Error('Ошибка удаления транзакции');
-
-                loadTransactions();
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(error.message);
-            }
-        }
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
 </body>
 
 </html>

@@ -1,107 +1,151 @@
-namespace api.Controller;
-
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using api.Model;
 using api.ModelDto;
 using api.Extension;
 using Microsoft.EntityFrameworkCore;
 
-[Route("api/[controller]")]
-[ApiController]
-public class TransactionController : ControllerBase
+namespace api.Controller
 {
-    private readonly AppDbContext _context;
-
-    public TransactionController(AppDbContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class TransactionController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly AppDbContext _context;
+        private readonly ILogger<TransactionController> _logger;
 
-    // POST: api/Transaction (Создание транзакции)
-    [HttpPost]
-    public async Task<ActionResult<Transaction>> CreateTransaction(TransactionDto transactionDto)
-    {
-        // Проверка существования категории
-        var categoryExists = await _context.Categories.AnyAsync(c => c.ID == transactionDto.CategoryID);
-        if (!categoryExists) return BadRequest("Invalid CategoryID");
-
-        var transaction = new Transaction
+        public TransactionController(AppDbContext context, ILogger<TransactionController> logger)
         {
-            Amount = transactionDto.Amount,
-            Date = transactionDto.Date,
-            CategoryID = transactionDto.CategoryID,
-            Description = transactionDto.Description
-        };
+            _context = context;
+            _logger = logger;
+        }
 
-        _context.Transactions.Add(transaction);
-        await _context.SaveChangesAsync();
+        [HttpPost]
+        public async Task<IActionResult> CreateTransaction([FromBody] TransactionDto transactionDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
 
-        return CreatedAtAction(nameof(GetTransaction), new { id = transaction.ID }, transaction);
-    }
+                // Проверка существования категории
+                var category = await _context.Categories
+                    .FirstOrDefaultAsync(c => c.ID == transactionDto.CategoryID);
 
-    // GET: api/Transaction (Получение всех транзакций)
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Transaction>>> GetTransactions()
-    {
-        return await _context.Transactions
-            .Include(t => t.Category) // Включаем связанную категорию
-            .ToListAsync();
-    }
+                if (category == null)
+                {
+                    return BadRequest(new { Message = "Категория не найдена" });
+                }
 
-    // DELETE: api/Transaction/{id} (Удаление транзакции)
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteTransaction(int id)
-    {
-        var transaction = await _context.Transactions.FindAsync(id);
-        if (transaction == null) return NotFound();
+                var transaction = new Transaction
+                {
+                    Amount = transactionDto.Amount,
+                    Date = DateTime.SpecifyKind(transactionDto.Date, DateTimeKind.Utc),
+                    CategoryID = transactionDto.CategoryID,
+                    Description = transactionDto.Description ?? string.Empty
+                };
 
-        _context.Transactions.Remove(transaction);
-        await _context.SaveChangesAsync();
+                await _context.Transactions.AddAsync(transaction);
+                await _context.SaveChangesAsync();
 
-        return NoContent();
-    }
+                // Загружаем связанную категорию для возврата
+                await _context.Entry(transaction)
+                    .Reference(t => t.Category)
+                    .LoadAsync();
 
-    // PUT: api/Transaction/{id} (Обновление транзакции)
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateTransaction(int id, TransactionDto transactionDto)
-    {
-        var transaction = await _context.Transactions.FindAsync(id);
-        if (transaction == null) return NotFound();
+                return CreatedAtAction(nameof(GetTransaction),
+                    new { id = transaction.ID },
+                    transaction);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании транзакции");
+                return StatusCode(500, new
+                {
+                    Message = "Внутренняя ошибка сервера",
+                    Error = ex.Message
+                });
+            }
+        }
 
-        // Проверка существования категории
-        var categoryExists = await _context.Categories.AnyAsync(c => c.ID == transactionDto.CategoryID);
-        if (!categoryExists) return BadRequest("Invalid CategoryID");
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Transaction>>> GetTransactions()
+        {
+            return await _context.Transactions
+                .Include(t => t.Category)
+                .AsNoTracking()
+                .ToListAsync();
+        }
 
-        transaction.Amount = transactionDto.Amount;
-        transaction.Date = transactionDto.Date;
-        transaction.CategoryID = transactionDto.CategoryID;
-        transaction.Description = transactionDto.Description;
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Transaction>> GetTransaction(int id)
+        {
+            var transaction = await _context.Transactions
+                .Include(t => t.Category)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.ID == id);
 
-        _context.Entry(transaction).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
+            if (transaction == null)
+            {
+                return NotFound();
+            }
 
-        return NoContent();
-    }
+            return transaction;
+        }
 
-    // GET: api/Transaction/{id} (Получение конкретной транзакции)
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Transaction>> GetTransaction(int id)
-    {
-        var transaction = await _context.Transactions
-            .Include(t => t.Category) // Включаем связанную категорию
-            .FirstOrDefaultAsync(t => t.ID == id);
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTransaction(int id, [FromBody] TransactionDto transactionDto)
+        {
+            try
+            {
+                var transaction = await _context.Transactions.FindAsync(id);
+                if (transaction == null)
+                {
+                    return NotFound();
+                }
 
-        if (transaction == null) return NotFound();
+                var category = await _context.Categories
+                    .FirstOrDefaultAsync(c => c.ID == transactionDto.CategoryID);
 
-        return transaction;
-    }
+                if (category == null)
+                {
+                    return BadRequest(new { Message = "Категория не найдена" });
+                }
 
-    // GET: api/Transaction/pass (Специальный эндпоинт как на схеме)
-    [HttpGet("pass")]
-    public IActionResult GetPass()
-    {
-        // Здесь может быть любая логика, например, проверка доступа
-        return Ok("Access granted");
+                transaction.Amount = transactionDto.Amount;
+                transaction.Date = DateTime.SpecifyKind(transactionDto.Date, DateTimeKind.Utc);
+                transaction.CategoryID = transactionDto.CategoryID;
+                transaction.Description = transactionDto.Description ?? string.Empty;
+
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении транзакции");
+                return StatusCode(500, new
+                {
+                    Message = "Внутренняя ошибка сервера",
+                    Error = ex.Message
+                });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTransaction(int id)
+        {
+            var transaction = await _context.Transactions.FindAsync(id);
+            if (transaction == null)
+            {
+                return NotFound();
+            }
+
+            _context.Transactions.Remove(transaction);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
     }
 }
