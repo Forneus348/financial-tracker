@@ -11,5 +11,5 @@ public class Category
     public string Name { get; set; }
 
     [Required]
-    public string Type { get; set; } // Доход/Расход
+    public string Type { get; set; }
 }

@@ -1,11 +1,9 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// Добавьте это в начало
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Остальной код остается без изменений
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();

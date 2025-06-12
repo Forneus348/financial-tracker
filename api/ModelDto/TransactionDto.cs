@@ -11,7 +11,7 @@ public class TransactionDto
     public DateTime Date { get; set; } = DateTime.UtcNow;
 
     [Required]
-    public int CategoryID { get; set; }  // Исправлено на CategoryID
+    public int CategoryID { get; set; }
 
     [StringLength(200)]
     public string Description { get; set; }

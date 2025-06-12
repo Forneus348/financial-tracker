@@ -26,7 +26,6 @@ function initApp() {
         saveCategoryBtn.addEventListener('click', handleSaveCategory);
     }
 
-    // Установка текущей даты по умолчанию
     setDefaultDateTime();
 
     // Обновляем список категорий при открытии модального окна транзакции
@@ -48,7 +47,7 @@ function setDefaultDateTime() {
     }
 }
 
-// ========== Транзакции ==========
+// Работа с транзакциями
 
 async function loadTransactions() {
     try {
@@ -275,7 +274,7 @@ function resetTransactionForm() {
     }
 }
 
-// ========== Категории ==========
+// Работа с категориями
 
 let categoriesCache = []; // Кэш для хранения категорий
 
@@ -307,7 +306,7 @@ async function loadCategories() {
     }
 }
 
-// Новая функция для обновления выпадающего списка
+// Функция для обновления выпадающего списка
 function refreshCategoryDropdown() {
     populateCategoryDropdown(categoriesCache);
 }
@@ -519,7 +518,7 @@ function resetCategoryForm() {
     }
 }
 
-// ========== Вспомогательные функции ==========
+// Вспомогательные функции
 
 async function getErrorMessage(response) {
     try {
